@@ -1,0 +1,58 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+.pipenv/
+*.egg-info/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Pytest cache
+.cache/
+.pytest_cache/
+
+# Pyre type checker
+.pyre/
+
+# Pylint
+.pylint.d/
+
+# Logs
+*.log
+
+# Weights & Biases logs
+wandb/
+wandb-debug.log
+
+# Checkpoints (PyTorch Lightning)
+lightning_logs/
+*.ckpt
+
+# VS Code settings
+.vscode/
+*.code-workspace
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Exclude outputs and data directories
+outputs/
+data/
+archive/
+
+# Matplotlib figures and plots
+*.png
+*.svg
+*.jpg
+
