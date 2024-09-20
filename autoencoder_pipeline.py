@@ -1,29 +1,19 @@
 import os, sys
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import wandb
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import pytorch_lightning as pl
 import torch.optim as optim
 from torch.optim.lr_scheduler import LambdaLR
-from torch.utils.data import Dataset, DataLoader
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.metrics import roc_auc_score
-import wandb
+import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
-import matplotlib.pyplot as plt
-from utils.data_utils import CustomMinMaxScalerWithGroups, CustomDataset, find_problematic_columns, prepare_data
-from utils.plotting_utils import plot_mask, plot_missingness
-
+from sklearn.metrics import roc_auc_score
+from utils.data_utils import prepare_data
 from pdb import set_trace as bp
 
-
-# 2. Basic Autoencoder model
-import torch
-import torch.nn as nn
-import pytorch_lightning as pl
 
 class ResidualAutoencoder(pl.LightningModule):
     def __init__(self, input_dim, latent_dim, hidden_dims, activation_fn, use_residual, 
