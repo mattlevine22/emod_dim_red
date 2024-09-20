@@ -455,9 +455,14 @@ if __name__ == "__main__":
     shuffle_train = True
 
     # Prepare data
-    # filename = "data/combined_data_subset_1_percent.csv"
+    # use 1% data subset
+    filename = "data/combined_data_subset_1_percent.csv"
+
+    # use 10% data subset
     # filename = "data/combined_data_subset_10_percent.csv"
-    filename = "data/combined_data.csv"
+
+    # use full data
+    # filename = "data/combined_data.csv"
 
     train_loader, test_loader = prepare_data(filename, batch_size, shuffle_train)
 
@@ -481,6 +486,7 @@ if __name__ == "__main__":
 
     # Define configuration for wandb
     config = {
+        "filename": filename,
         "input_dim": num_total_features,
         "latent_dim": 1000,
         "hidden_dims": [2000, 1500],
