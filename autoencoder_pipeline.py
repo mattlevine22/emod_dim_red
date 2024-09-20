@@ -23,6 +23,7 @@ class ResidualAutoencoder(pl.LightningModule):
                  dropout_rate=0.3,
                  learning_rate=1e-4,
                  max_epochs=10,
+                 log_plot_freq=50,
                  log_plots=True,
                  log_grads=False,
                  **kwargs):
@@ -32,6 +33,7 @@ class ResidualAutoencoder(pl.LightningModule):
         print(f"kwargs: {kwargs}")
         print("Note: The kwargs will be ignored in this model, but were hopefully used elsewhere.")
 
+        self.log_plot_freq = log_plot_freq # how often to make plots and log them to wandb
         self.log_plots = log_plots
         self.log_grads = log_grads
         self.use_residual = use_residual
@@ -167,7 +169,7 @@ class ResidualAutoencoder(pl.LightningModule):
                 stage="train")
 
         # Log the true and reconstructed data as images to wandb
-        if self.current_epoch % 50 == 0 and batch_idx == 0:  # Log only once per epoch
+        if self.current_epoch % self.log_plot_freq == 0 and batch_idx == 0:  # Log only once per epoch
             # log binary images
             self.log_images_to_wandb(x_binary, x_hat_binary, x_real, x_hat_real, mask_binary, mask_real, 'train')
 
@@ -182,7 +184,7 @@ class ResidualAutoencoder(pl.LightningModule):
                 stage="val")
 
         # Log the true and reconstructed data as images to wandb
-        if self.current_epoch % 50 == 0 and batch_idx == 0:  # Log only once per epoch
+        if (self.current_epoch % self.log_plot_freq == 0 and batch_idx == 0):
             # log binary images
             self.log_images_to_wandb(x_binary, x_hat_binary, x_real, x_hat_real, mask_binary, mask_real, 'val')
 
@@ -380,7 +382,6 @@ class ResidualAutoencoder(pl.LightningModule):
         my_ax.set_xlabel("Features")
         plt.colorbar(my_ax.imshow(reconstructed_binary_with_mask, cmap=cmap, vmin=0, vmax=1, aspect='auto', interpolation='nearest'), ax=my_ax)
 
-
         # Plot true real data with mask applied
         my_ax = ax[2, 0]
         true_real_with_mask = apply_mask(x_real, mask_real, vmin=0, vmax=1)
@@ -502,6 +503,7 @@ if __name__ == "__main__":
         "max_epochs": 1000,
         "real_weight": real_weight,
         "binary_weight": binary_weight,
+        "log_plot_freq": 50,
         "log_plots": True,
         "log_grads": False,
     }
