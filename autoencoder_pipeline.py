@@ -188,6 +188,24 @@ class ResidualAutoencoder(pl.LightningModule):
             # log binary images
             self.log_images_to_wandb(x_binary, x_hat_binary, x_real, x_hat_real, mask_binary, mask_real, 'val')
 
+    def test_step(self, batch, batch_idx):
+        x_binary, x_real, mask_binary, mask_real = batch
+        x_hat_binary, x_hat_real = self(x_binary, x_real)
+        loss = self.compute_loss(
+            x_binary,
+            x_real,
+            x_hat_binary,
+            x_hat_real,
+            mask_binary,
+            mask_real,
+            stage="test",
+        )
+
+        # Log the true and reconstructed data as images to wandb
+        if batch_idx == 0:
+            # log binary images
+            self.log_images_to_wandb(x_binary, x_hat_binary, x_real, x_hat_real, mask_binary, mask_real, "test")
+
     def configure_optimizers(self):
         # Define optimizer
         optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
@@ -225,8 +243,11 @@ class ResidualAutoencoder(pl.LightningModule):
         bce_loss = F.binary_cross_entropy(x_hat_binary, x_binary, reduction='none')
         bce_loss = (bce_loss * mask_binary).mean()
 
+        weighted_mse_loss = self.real_weight * mse_loss
+        weighted_bce_loss = self.binary_weight * bce_loss
+
         # Combine losses
-        total_loss = self.real_weight * mse_loss + self.binary_weight * bce_loss
+        total_loss = weighted_mse_loss + weighted_bce_loss
 
         # a note that a random prediction (0.5) would have a BCE loss of 0.69
         # for real-valued data, unclear what the MSE loss would be for 0.5,
@@ -238,6 +259,8 @@ class ResidualAutoencoder(pl.LightningModule):
         # where lambda = 0.69 / 0.0833 = 8.32
 
         # Log losses to wandb
+        self.log(f"{stage}_weighted_mse_loss", weighted_mse_loss.item())
+        self.log(f"{stage}_weighted_bce_loss", weighted_bce_loss.item())
         self.log(f"{stage}_mse_loss", mse_loss.item())
         self.log(f"{stage}_bce_loss", bce_loss.item())
         self.log(f"{stage}_loss", total_loss.item())
@@ -408,7 +431,7 @@ class ResidualAutoencoder(pl.LightningModule):
 
 
 # 4. Training setup function with wandb logging
-def train_model(model, train_loader, test_loader, config):
+def train_model(model, train_loader, val_loader, test_loader, config):
 
     # Detect device: MPS for macOS, GPU for other systems if available
     if torch.backends.mps.is_available():
@@ -433,7 +456,7 @@ def train_model(model, train_loader, test_loader, config):
         # gradient_clip_val=0.5,
         callbacks=[
             pl.callbacks.LearningRateMonitor(logging_interval="step"),  # was "epoch"
-            # pl.callbacks.EarlyStopping(monitor="val_loss", patience=10),
+            pl.callbacks.EarlyStopping(monitor="val_loss", patience=config["early_stopping_patience"]),
             pl.callbacks.ModelCheckpoint(
                 dirpath=f"{output_dir}/checkpoints/{wandb.run.name}",  # Directory to save checkpoints
                 filename="{epoch}-{val_loss:.2f}",  # Naming pattern for checkpoint files
@@ -445,7 +468,10 @@ def train_model(model, train_loader, test_loader, config):
         accelerator=config["accelerator"],  # mps, gpu, cpu
         # can configure devices= if desired to choose specific GPUs
     )
-    trainer.fit(model, train_loader, test_loader)
+    trainer.fit(model, train_loader, val_loader)
+
+    # Test the model on the test set
+    trainer.test(model, test_loader)
 
 
 # 5. Main function to run the script
@@ -465,11 +491,11 @@ if __name__ == "__main__":
     # use full data
     # filename = "data/combined_data.csv"
 
-    train_loader, test_loader = prepare_data(filename, batch_size, shuffle_train)
+    train_loader, val_loader, test_loader = prepare_data(filename, batch_size, shuffle_train)
 
     # determine MSE vs BCE loss weights by counting number of features (and possibly doing further re-weighting)
-    num_binary_features = train_loader.dataset.binary_data.shape[1]
-    num_real_features = train_loader.dataset.real_data.shape[1]
+    num_binary_features = train_loader.dataset.dataset.binary_data.shape[1]
+    num_real_features = train_loader.dataset.dataset.real_data.shape[1]
     num_total_features = num_binary_features + num_real_features
     print(f"Input dimension: {num_total_features}")
 
@@ -506,13 +532,14 @@ if __name__ == "__main__":
         "log_plot_freq": 50,
         "log_plots": True,
         "log_grads": False,
+        "early_stopping_patience": 20,
     }
 
     # Initialize model
     model = ResidualAutoencoder(**config)
 
     # Train model
-    train_model(model, train_loader, test_loader, config)
+    train_model(model, train_loader, val_loader, test_loader, config)
 
     '''
     NOTE:

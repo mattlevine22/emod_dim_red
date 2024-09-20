@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
 from sklearn.model_selection import train_test_split
 
 from pdb import set_trace as bp
@@ -343,7 +343,6 @@ def prepare_data(filename="data/combined_data_subset_1_percent",
     train_data = np.log10(1 + train_data.astype(float))
     test_data = np.log10(1 + test_data.astype(float))
 
-
     # Then we will apply a MinMaxScaling that computes min/max values for each column group.
     # This will ensure that the same scaling is applied to all columns in a group.
     scaler = CustomMinMaxScalerWithGroups(
@@ -363,7 +362,7 @@ def prepare_data(filename="data/combined_data_subset_1_percent",
     }
 
     print("Creating training dataset...")
-    train_dataset = CustomDataset(
+    train_dataset_pre_split = CustomDataset(
         train_data_scaled, binary_cols=columns_by_type["binary"]
     )
     print("Creating test dataset...")
@@ -371,31 +370,27 @@ def prepare_data(filename="data/combined_data_subset_1_percent",
         test_data_scaled, binary_cols=columns_by_type["binary"]
     )
 
-    # Plot the masks
-    # plot_mask(train_dataset.mask, title="Train Mask")
-    # plot_mask(train_dataset.mask[:10], title="Train Mask")
-
-    # Create DataLoaders
-    # use full batch size for now
-
-    # train_batch_size = min(len(train_data), config["batch_size"])
-    # test_batch_size = min(len(test_data), config["batch_size"])
+    # Split train data into train and validation: # 80% train, 20% validation
+    train_dataset, val_dataset = random_split(train_dataset_pre_split, [0.8, 0.2])
 
     if batch_size is None:
-        train_batch_size = len(train_data)
-        test_batch_size = len(test_data)
+        train_batch_size = len(train_dataset)
+        val_batch_size = len(val_dataset)
+        test_batch_size = len(test_dataset)
     else:
         # take minimum of batch size and data size
-        train_batch_size = min(len(train_data), batch_size)
-        test_batch_size = min(len(test_data), batch_size)
+        train_batch_size = min(len(train_dataset), batch_size)
+        val_batch_size = min(len(val_dataset), batch_size)
+        test_batch_size = min(len(test_dataset), batch_size)
 
-    print(f"Using batch size of {train_batch_size} for training and {test_batch_size} for testing.")
+    print(f"Using batch size of {train_batch_size} for training, {val_batch_size} for validation, and {test_batch_size} for testing.")
 
     # no reason to shuffle the data if we are using the full batch size
     train_loader = DataLoader(train_dataset, batch_size=train_batch_size, shuffle=shuffle_train)
+    val_loader = DataLoader(val_dataset, batch_size=val_batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=test_batch_size, shuffle=False)
 
-    return train_loader, test_loader
+    return train_loader, val_loader, test_loader
 
 
 def find_problematic_columns(train_data, test_data, relative_threshold=2, absolute_threshold=1000):
