@@ -172,10 +172,12 @@ class CustomMinMaxScalerWithGroups:
 
 
 # 3. Data preprocessing and split
-def prepare_data(filename="data/combined_data_subset_1_percent"):
+def prepare_data(filename="data/combined_data_subset_1_percent",
+                 batch_size=None,
+                 shuffle_train=True):
     # fname = "data/combined_data_subset_1_percent.csv"
     # fname = "data/combined_data_subset_10_percent.csv"
-    data = pd.read_csv(filename)
+    data = pd.read_csv(filename, low_memory=False)
 
     # Drop columns "suid" and "eir" columns
     data = data.drop(columns=["suid", "eir"])
@@ -338,8 +340,9 @@ def prepare_data(filename="data/combined_data_subset_1_percent"):
     )
 
     # First, we will apply a log10(1+x) transformation every element of the dataset.
-    train_data = train_data.applymap(lambda x: np.log10(1 + x))
-    test_data = test_data.applymap(lambda x: np.log10(1 + x))
+    train_data = np.log10(1 + train_data.astype(float))
+    test_data = np.log10(1 + test_data.astype(float))
+
 
     # Then we will apply a MinMaxScaling that computes min/max values for each column group.
     # This will ensure that the same scaling is applied to all columns in a group.
@@ -378,11 +381,18 @@ def prepare_data(filename="data/combined_data_subset_1_percent"):
     # train_batch_size = min(len(train_data), config["batch_size"])
     # test_batch_size = min(len(test_data), config["batch_size"])
 
-    train_batch_size = len(train_data)
-    test_batch_size = len(test_data)
+    if batch_size is None:
+        train_batch_size = len(train_data)
+        test_batch_size = len(test_data)
+    else:
+        # take minimum of batch size and data size
+        train_batch_size = min(len(train_data), batch_size)
+        test_batch_size = min(len(test_data), batch_size)
+
+    print(f"Using batch size of {train_batch_size} for training and {test_batch_size} for testing.")
 
     # no reason to shuffle the data if we are using the full batch size
-    train_loader = DataLoader(train_dataset, batch_size=train_batch_size, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=train_batch_size, shuffle=shuffle_train)
     test_loader = DataLoader(test_dataset, batch_size=test_batch_size, shuffle=False)
 
     return train_loader, test_loader

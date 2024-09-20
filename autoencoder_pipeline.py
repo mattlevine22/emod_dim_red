@@ -34,8 +34,14 @@ class ResidualAutoencoder(pl.LightningModule):
                  learning_rate=1e-4,
                  max_epochs=10,
                  log_plots=True,
-                 log_grads=False):
+                 log_grads=False,
+                 **kwargs):
         super(ResidualAutoencoder, self).__init__()
+
+        # print the kwargs and point out that they will be ignored
+        print(f"kwargs: {kwargs}")
+        print("Note: The kwargs will be ignored in this model, but were hopefully used elsewhere.")
+
         self.log_plots = log_plots
         self.log_grads = log_grads
         self.use_residual = use_residual
@@ -444,10 +450,17 @@ def train_model(model, train_loader, test_loader, config):
 
 # 5. Main function to run the script
 if __name__ == "__main__":
+
+    # preliminary setup
+    batch_size = 2048 # setting to None uses full dataset
+    shuffle_train = True
+
     # Prepare data
     # filename = "data/combined_data_subset_1_percent.csv"
-    filename = "data/combined_data_subset_10_percent.csv"
-    train_loader, test_loader = prepare_data(filename)
+    # filename = "data/combined_data_subset_10_percent.csv"
+    filename = "data/combined_data.csv"
+
+    train_loader, test_loader = prepare_data(filename, batch_size, shuffle_train)
 
     # determine MSE vs BCE loss weights by counting number of features (and possibly doing further re-weighting)
     num_binary_features = train_loader.dataset.binary_data.shape[1]
@@ -467,7 +480,6 @@ if __name__ == "__main__":
 
     # total_loss = real_weight * MSE_loss + binary_weight * BCE_loss
 
-
     # Define configuration for wandb
     config = {
         "input_dim": num_total_features,
@@ -480,7 +492,8 @@ if __name__ == "__main__":
         "use_layer_norm": False,
         "learning_rate": 1e-4,
         "dropout_rate": 0.0,
-        # "batch_size": train_loader.dataset.binary_data.shape[0],
+        "batch_size": batch_size,  # None uses full dataset
+        "shuffle_train": shuffle_train,
         "max_epochs": 1000,
         "real_weight": real_weight,
         "binary_weight": binary_weight,
@@ -498,12 +511,7 @@ if __name__ == "__main__":
     NOTE:
     With latent_dim==input_dim and GELU activation, we are able to get VERY close to identity mapping.
     A few comments:
-        1. We are using residual connections and batch norm; can try without these.
-        2. We are reducing LR on TRAIN loss plateau---goal is to overfit to data for now, but eventually
-              we want to generalize and will use validation loss.
-        3. Needed to run for MANY epochs (set to 1000).
-        4. Training initially improves BCE and MSE, but then focuses on BCE for a long time until
-        it is of similar magnitude to MSE.
-            - consider rescaling the losses to be of similar magnitude (e.g. 8.32 * MSE + BCE, to focus more on MSE initially)
+        1. We are using residual connections (Projection based) and batch norm; can try without these.
+        2. Needed to run for MANY epochs (set to 1000).
 
     '''
