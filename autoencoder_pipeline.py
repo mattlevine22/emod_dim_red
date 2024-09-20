@@ -419,6 +419,14 @@ class ResidualAutoencoder(pl.LightningModule):
 # 4. Training setup function with wandb logging
 def train_model(model, train_loader, test_loader, config):
 
+    # Detect device: MPS for macOS, GPU for other systems if available
+    if torch.backends.mps.is_available():
+        config["accelerator"] = "mps"
+    elif torch.cuda.is_available():
+        config["accelerator"] = "gpu"
+    else:
+        config["accelerator"] = "cpu"
+
     output_dir = "outputs"
     os.makedirs(f"{output_dir}", exist_ok=True)
 
@@ -443,7 +451,8 @@ def train_model(model, train_loader, test_loader, config):
                 mode="min",  # Save when validation loss decreases
             ),
         ],
-        accelerator="mps",  # For running on M1 MacBook (use 'gpu' on a server with GPUs)
+        accelerator=config["accelerator"],  # mps, gpu, cpu
+        # can configure devices= if desired to choose specific GPUs
     )
     trainer.fit(model, train_loader, test_loader)
 
