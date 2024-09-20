@@ -1,18 +1,18 @@
-# Project Name
+# Autoencoder-based Dimensionality Reduction for EMOD data
 
-This project uses a Conda environment to manage dependencies. Below are the steps to set up the environment and get started.
+This project performs dimensionality reduction (via autoencoder) on data from the EMOD project, which is a simulation of infectious disease spread in a population. The data is a mix of real-valued and binary features, and the goal is to reduce the dimensionality of the data while preserving the most important information.
 
 ## Setup Instructions
 
+# Clone this repository to your local machine:
 ```bash
-# 1. Clone the Repository
+git clone https://github.com/your-username/emod_dim_red.git
+cd emod_dim_red
+```
 
-# First, clone this repository to your local machine:
-git clone https://github.com/your-username/your-repository.git
-cd your-repository
+# Create the Conda Environment:
 
-# 2. Create the Conda Environment
-
+```bash
 # The environment.yml file contains all the necessary dependencies to run this project. 
 # To create the environment, use the following command:
 conda env create -f environment.yml
@@ -22,21 +22,9 @@ conda env create -f environment.yml
 # 3. Activate the Environment
 
 # After the environment is created, activate it using:
-conda activate my-environment-name
+conda activate autoencoder-env
+```
 
-# Make sure to replace `my-environment-name` with the name of the environment specified 
-# in the `environment.yml` file (or any name you provided during the environment creation).
 
-# 4. Update the Environment (Optional)
-
-# If the `environment.yml` file has changed and you need to update your environment, run:
-conda env update -f environment.yml --prune
-
-# This will update the environment based on the latest `environment.yml` file and remove 
-# any dependencies that are no longer required.
-
-# 5. Deactivate the Environment
-
-# Once you are done, you can deactivate the Conda environment using:
-conda deactivate
-
+# Run the main script
+```python autoencoder_pipeline.py```
