@@ -14,8 +14,8 @@ from sklearn.metrics import roc_auc_score
 import wandb
 from pytorch_lightning.loggers import WandbLogger
 import matplotlib.pyplot as plt
-from data_utils import CustomMinMaxScalerWithGroups, CustomDataset, find_problematic_columns, prepare_data
-from plotting_utils import plot_mask, plot_missingness
+from utils.data_utils import CustomMinMaxScalerWithGroups, CustomDataset, find_problematic_columns, prepare_data
+from utils.plotting_utils import plot_mask, plot_missingness
 
 from pdb import set_trace as bp
 
@@ -445,8 +445,8 @@ def train_model(model, train_loader, test_loader, config):
 # 5. Main function to run the script
 if __name__ == "__main__":
     # Prepare data
-    filename = "data/combined_data_subset_1_percent.csv"
-    # filename = "data/combined_data_subset_10_percent.csv"
+    # filename = "data/combined_data_subset_1_percent.csv"
+    filename = "data/combined_data_subset_10_percent.csv"
     train_loader, test_loader = prepare_data(filename)
 
     # determine MSE vs BCE loss weights by counting number of features (and possibly doing further re-weighting)
@@ -471,15 +471,15 @@ if __name__ == "__main__":
     # Define configuration for wandb
     config = {
         "input_dim": num_total_features,
-        "latent_dim": 64,
-        "hidden_dims": [512, 256, 128],
+        "latent_dim": 1000,
+        "hidden_dims": [2000, 1500],
         "activation_fn": nn.GELU,
         "use_residual": True,
         "identity_if_no_compression": False,
         "use_batch_norm": True,
         "use_layer_norm": False,
         "learning_rate": 1e-4,
-        "dropout_rate": 0.9,
+        "dropout_rate": 0.0,
         # "batch_size": train_loader.dataset.binary_data.shape[0],
         "max_epochs": 1000,
         "real_weight": real_weight,
