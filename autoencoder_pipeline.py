@@ -472,6 +472,7 @@ def train_model(model, train_loader, val_loader, test_loader, config):
             ),
         ],
         accelerator=config["accelerator"],  # mps, gpu, cpu
+        devices=1,
         # can configure devices= if desired to choose specific GPUs
     )
     trainer.fit(model, train_loader, val_loader)
