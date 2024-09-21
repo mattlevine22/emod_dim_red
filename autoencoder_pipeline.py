@@ -535,7 +535,7 @@ if __name__ == "__main__":
         "max_epochs": 1000,
         "real_weight": real_weight,
         "binary_weight": binary_weight,
-        "log_plot_freq": 50,
+        "log_plot_freq": 20,
         "log_plots": True,
         "log_grads": False,
         "early_stopping_patience": 20,
