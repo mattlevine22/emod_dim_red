@@ -1,5 +1,6 @@
 import os, sys
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 import wandb
@@ -14,6 +15,7 @@ from sklearn.metrics import roc_auc_score
 from utils.data_utils import prepare_data
 from pdb import set_trace as bp
 
+matplotlib.use("Agg")  # Use a non-interactive backend for Matplotlib
 
 class ResidualAutoencoder(pl.LightningModule):
     def __init__(self, input_dim, latent_dim, hidden_dims, activation_fn, use_residual, 
@@ -32,6 +34,10 @@ class ResidualAutoencoder(pl.LightningModule):
         # print the kwargs and point out that they will be ignored
         print(f"kwargs: {kwargs}")
         print("Note: The kwargs will be ignored in this model, but were hopefully used elsewhere.")
+
+        # set activation function if it is a string
+        if isinstance(activation_fn, str):
+            activation_fn = getattr(nn, activation_fn)
 
         self.log_plot_freq = log_plot_freq # how often to make plots and log them to wandb
         self.log_plots = log_plots
