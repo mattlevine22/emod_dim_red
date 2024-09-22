@@ -3,6 +3,7 @@ from autoencoder_pipeline import prepare_data, train_model, ResidualAutoencoder
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--sweep_id", type=str, default=None)
+parser.add_argument("--device", type=int, default=0)
 
 # use flags and argparse to get sweep id from command line.
 # if not specified, it will be None and a new sweep will be created using the sweep_config
@@ -10,6 +11,8 @@ parser.add_argument("--sweep_id", type=str, default=None)
 
 # Training function for the sweep
 def sweep_train():
+    args = parser.parse_args()
+
     # Explicitly initialize a new wandb run (optional but good for clarity)
     run = wandb.init()
 
@@ -26,6 +29,7 @@ def sweep_train():
         "log_plots": True,
         "log_grads": False,
         "early_stopping_patience": 10,
+        "device": [args.device],
     }
 
     # Prepare data

@@ -472,8 +472,8 @@ def train_model(model, train_loader, val_loader, test_loader, config):
             ),
         ],
         accelerator=config["accelerator"],  # mps, gpu, cpu
-        devices=1,
-        # can configure devices= if desired to choose specific GPUs
+        devices=config["devices"], # if this is "1" uses 1 device, "-1" uses all available devices,
+        # if it is a list, it uses the devices in the list
     )
     trainer.fit(model, train_loader, val_loader)
 
@@ -540,6 +540,7 @@ if __name__ == "__main__":
         "log_plots": True,
         "log_grads": False,
         "early_stopping_patience": 20,
+        "devices": [0],  # Use the first device
     }
 
     # Initialize model
