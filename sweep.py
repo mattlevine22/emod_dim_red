@@ -4,6 +4,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--sweep_id", type=str, default=None)
 parser.add_argument("--device", type=int, default=0)
+parser.add_argument("--project_name", type=str, default="autoencoder_sweeps")
 
 # use flags and argparse to get sweep id from command line.
 # if not specified, it will be None and a new sweep will be created using the sweep_config
@@ -14,7 +15,7 @@ def sweep_train():
     args = parser.parse_args()
 
     # Explicitly initialize a new wandb run (optional but good for clarity)
-    run = wandb.init()
+    run = wandb.init(project=args.project_name)
 
     # Convert wandb.config to a regular dictionary
     sweep_config_dict = dict(wandb.config)
@@ -91,7 +92,7 @@ args = parser.parse_args()
 if args.sweep_id is not None:
     sweep_id = args.sweep_id
 else:
-    sweep_id = wandb.sweep(sweep_config, project="autoencoder_sweeps")
+    sweep_id = wandb.sweep(sweep_config, project=args.project_name)
 
 # Run the sweep
-wandb.agent(sweep_id, function=sweep_train, count=30)
+wandb.agent(sweep_id, function=sweep_train, count=30, project=args.project_name)
