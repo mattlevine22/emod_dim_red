@@ -1,5 +1,12 @@
 import wandb
 from autoencoder_pipeline import prepare_data, train_model, ResidualAutoencoder
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("--sweep_id", type=str, default=None)
+
+# use flags and argparse to get sweep id from command line.
+# if not specified, it will be None and a new sweep will be created using the sweep_config
+
 
 # Training function for the sweep
 def sweep_train():
@@ -76,7 +83,11 @@ sweep_config = {
 }
 
 # Initialize the sweep
-sweep_id = wandb.sweep(sweep_config, project="autoencoder_sweeps")
+args = parser.parse_args()
+if args.sweep_id is not None:
+    sweep_id = args.sweep_id
+else:
+    sweep_id = wandb.sweep(sweep_config, project="autoencoder_sweeps")
 
 # Run the sweep
 wandb.agent(sweep_id, function=sweep_train, count=30)
