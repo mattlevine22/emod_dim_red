@@ -30,7 +30,7 @@ def sweep_train():
         "log_plots": True,
         "log_grads": False,
         "early_stopping_patience": 10,
-        "device": [args.device],
+        "devices": [args.device],
     }
 
     # Prepare data
