@@ -12,8 +12,10 @@ from torch.optim.lr_scheduler import LambdaLR
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from sklearn.metrics import roc_auc_score
-from utils.data_utils import prepare_data
+from utils.data_utils import *
 from pdb import set_trace as bp
+
+from utils.create_maskings import *
 
 matplotlib.use("Agg")  # Use a non-interactive backend for Matplotlib
 
@@ -30,6 +32,8 @@ class ResidualAutoencoder(pl.LightningModule):
                  log_grads=False,
                  **kwargs):
         super(ResidualAutoencoder, self).__init__()
+
+        self.test_outputs = []  # List to store test outputs per batch
 
         # print the kwargs and point out that they will be ignored
         print(f"kwargs: {kwargs}")
@@ -212,6 +216,28 @@ class ResidualAutoencoder(pl.LightningModule):
             # log binary images
             self.log_images_to_wandb(x_binary, x_hat_binary, x_real, x_hat_real, mask_binary, mask_real, "test")
 
+        # Store predictions and masks in self.test_outputs
+        output = {
+            'x_hat_binary': x_hat_binary,
+            'x_hat_real': x_hat_real
+        }
+        self.test_outputs.append(output)   
+   
+ 
+    def on_test_epoch_end(self):
+        # Aggregate the predictions and masks from each batch
+        all_x_hat_binary = torch.cat([output['x_hat_binary'] for output in self.test_outputs], dim=0)
+        all_x_hat_real = torch.cat([output['x_hat_real'] for output in self.test_outputs], dim=0)
+
+        # Store the aggregated predictions
+        self.aggregated_test_results = {
+            'x_hat_binary': all_x_hat_binary,
+            'x_hat_real': all_x_hat_real
+        }
+
+        # Clear test outputs to free up memory
+        self.test_outputs = []
+    
     def configure_optimizers(self):
         # Define optimizer
         optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
@@ -446,6 +472,7 @@ def train_model(model, train_loader, val_loader, test_loader, config):
         config["accelerator"] = "gpu"
     else:
         config["accelerator"] = "cpu"
+        config["devices"] = 1
 
     output_dir = "outputs"
     os.makedirs(f"{output_dir}", exist_ok=True)
@@ -477,6 +504,7 @@ def train_model(model, train_loader, val_loader, test_loader, config):
     )
     trainer.fit(model, train_loader, val_loader)
 
+    
     # Test the model on the test set
     trainer.test(model, test_loader)
 
@@ -498,7 +526,7 @@ if __name__ == "__main__":
     # use full data
     # filename = "data/combined_data.csv"
 
-    train_loader, val_loader, test_loader = prepare_data(filename, batch_size, shuffle_train)
+    train_loader, val_loader, test_loader, scaler, col_list_dict, test_eir_suid = prepare_data(filename, batch_size, shuffle_train)
 
     # determine MSE vs BCE loss weights by counting number of features (and possibly doing further re-weighting)
     num_binary_features = train_loader.dataset.dataset.binary_data.shape[1]
@@ -533,7 +561,7 @@ if __name__ == "__main__":
         "dropout_rate": 0.0,
         "batch_size": batch_size,  # None uses full dataset
         "shuffle_train": shuffle_train,
-        "max_epochs": 1000,
+        "max_epochs": 30,
         "real_weight": real_weight,
         "binary_weight": binary_weight,
         "log_plot_freq": 20,
@@ -548,6 +576,16 @@ if __name__ == "__main__":
 
     # Train model
     train_model(model, train_loader, val_loader, test_loader, config)
+
+    # Access the test results from the model after testing
+    x_hat_binary = model.aggregated_test_results['x_hat_binary']
+    x_hat_real = model.aggregated_test_results['x_hat_real']
+
+    # Post process the output
+    final_predictions_df = post_process_predictions(x_hat_binary, x_hat_real, scaler, col_list_dict, test_eir_suid)
+
+    # Write final predictions to CSV
+    final_predictions_df.to_csv('predictions.csv', columns=final_predictions_df.columns, index=False)
 
     '''
     NOTE:
